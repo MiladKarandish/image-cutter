@@ -1,0 +1,782 @@
+/** @type {HTMLCanvasElement} */
+
+class Selector {
+  constructor({
+    container,
+    canvas,
+    colors,
+    lineWidth,
+    resizersSize,
+    x,
+    y,
+    width,
+    height,
+    aspectRatio,
+  }) {
+    // container
+    this.container = container;
+    this.styles(this.container, { touchAction: "none", position: "relative" });
+    this.containerInfo = container.getBoundingClientRect();
+
+    // Canvas
+    this.canvas = canvas || document.createElement("canvas");
+    this.styles(this.canvas, {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      height: "100%",
+      zIndex: 100,
+      display: "block",
+    });
+    if (!canvas) this.container.appendChild(this.canvas);
+    this.c = this.canvas.getContext("2d");
+
+    // Selector rectangle
+    this.width = width || this.containerInfo.width / 2;
+    this.height = height || this.containerInfo.height / 2;
+    this.x = x || this.containerInfo.width / 2 - this.width / 2;
+    this.y = y || this.containerInfo.height / 2 - this.height / 2;
+
+    // Draw resizer
+    this.drawing = false;
+
+    // Selector resize points
+    this.pointSize = resizersSize || 5;
+    this.resizers = {};
+    this.selectedResizer = null;
+    this.sides = ["tl", "ct", "tr", "cl", "cr", "bl", "cb", "br"];
+
+    // Event Handleres
+    this.mouseDown = this.mouseDown.bind(this);
+    this.mouseUp = this.mouseUp.bind(this);
+    this.mouseMove = this.mouseMove.bind(this);
+    this.resize = this.resize.bind(this);
+    this.hoverCursor = this.hoverCursor.bind(this);
+
+    // For moving the selector
+    this.offset = {
+      x: 0,
+      y: 0,
+    };
+    this.position = {
+      x: this.x,
+      y: this.y,
+    };
+
+    // Aspect Ratio
+    this.ratio = aspectRatio || null;
+
+    // CallBack
+    this.callback = null;
+
+    // initiate canvas sizes
+    this.canvas.width = this.containerInfo.width;
+    this.canvas.height = this.containerInfo.height;
+
+    // Cursors
+    this.cursors = {
+      tl: "se-resize",
+      tr: "sw-resize",
+      bl: "ne-resize",
+      br: "nw-resize",
+      cl: "e-resize",
+      ct: "s-resize",
+      cr: "w-resize",
+      cb: "n-resize",
+    };
+
+    // Styles
+    this.colors = colors;
+    this.c.lineWidth = lineWidth;
+
+    // Event listeners
+    window.addEventListener("resize", this.resize);
+  }
+
+  // To apply styles as an object to a node
+  styles(node, styles) {
+    Object.keys(styles).forEach((key) => (node.style[key] = styles[key]));
+  }
+
+  cursor(cursor) {
+    this.container.style.cursor = cursor;
+  }
+
+  addMainRect() {
+    this.c.beginPath();
+    this.c.rect(
+      this.x,
+      this.y,
+      this.width,
+      !this.ratio ? this.height : this.height
+    );
+    this.c.strokeStyle = this.colors?.rect || "#f4f4f4";
+    this.c.stroke();
+
+    this.c.beginPath();
+  }
+
+  addResizer(side) {
+    let x = 0;
+    let y = 0;
+    let shapeX = 0;
+    let shapeY = 0;
+    let width = this.pointSize;
+    let height = this.pointSize;
+
+    // Set positions
+    switch (side) {
+      case "tl":
+        x = shapeX = this.x - this.pointSize / 2;
+        y = shapeY = this.y - this.pointSize / 2;
+        width = this.pointSize;
+        height = this.pointSize;
+        break;
+      case "tr":
+        x = shapeX = this.x + this.width - this.pointSize / 2;
+        y = shapeY = this.y - this.pointSize / 2;
+        width = this.pointSize;
+        height = this.pointSize;
+
+        break;
+      case "bl":
+        x = shapeX = this.x - this.pointSize / 2;
+        y = shapeY = this.y + this.height - this.pointSize / 2;
+        width = this.pointSize;
+        height = this.pointSize;
+
+        break;
+      case "br":
+        x = shapeX = this.x + this.width - this.pointSize / 2;
+        y = shapeY = this.y + this.height - this.pointSize / 2;
+        width = this.pointSize;
+        height = this.pointSize;
+
+        break;
+      case "cl":
+        x = shapeX = this.x - this.pointSize / 2;
+        y = this.y + this.pointSize / 2;
+        shapeY = this.y + this.height / 2 - this.pointSize / 2;
+        height = this.height - this.pointSize;
+        break;
+      case "ct":
+        x = this.x + this.pointSize / 2;
+        shapeX = this.x + this.width / 2 - this.pointSize / 2;
+        y = shapeY = this.y - this.pointSize / 2;
+        width = this.width - this.pointSize;
+        break;
+      case "cr":
+        x = shapeX = this.x + this.width - this.pointSize / 2;
+        y = this.y + this.pointSize / 2;
+        shapeY = this.y + this.height / 2 - this.pointSize / 2;
+        height = this.height - this.pointSize;
+
+        break;
+      case "cb":
+        x = this.x + this.pointSize / 2;
+        y = shapeY = this.y + this.height - this.pointSize / 2;
+        width = this.width - this.pointSize;
+        shapeX = this.x + this.width / 2 - this.pointSize / 2;
+
+        break;
+      default:
+        break;
+    }
+
+    this.resizers[side] = {
+      x,
+      y,
+      width,
+      height,
+    };
+
+    this.c.rect(shapeX, shapeY, this.pointSize, this.pointSize);
+  }
+
+  getHeight(length, ratio) {
+    const height = length / Math.sqrt(Math.pow(ratio, 2));
+    return height;
+  }
+
+  getWidth(length, ratio) {
+    const width = length / Math.sqrt(1 / Math.pow(ratio, 2));
+    return width;
+  }
+
+  selector() {
+    // The selecor rectangle
+    this.addMainRect();
+
+    // The selector resize points:
+    this.sides.forEach((side) => {
+      this.addResizer(side);
+    });
+
+    // If no colors provided
+    if (!this.colors?.resizersFill && !this.colors?.resizersStroke) {
+      this.c.fillStyle = "#ccc";
+      this.c.fill();
+      return;
+    }
+    // If fill color provided
+    if (this.colors?.resizersFill) {
+      this.c.fillStyle = this.colors?.resizersFill;
+      this.c.fill();
+    }
+    // If stroke color provided
+    if (this.colors?.resizersStroke) {
+      this.c.strokeStyle = this.colors?.resizersStroke;
+      this.c.stroke();
+    }
+  }
+
+  detectSelectedPointSide() {
+    let resizersArr = [];
+    for (let item in this.resizers) {
+      resizersArr.push({ ...this.resizers[item], side: item });
+    }
+
+    const sortedX = resizersArr.sort((a, b) => a.x - b.x);
+    const finalSort = sortedX.sort((a, b) => a.y - b.y);
+
+    const renamed = finalSort.map((item, index) => {
+      item.side = this.sides[index];
+      return item;
+    });
+
+    this.resizers = {};
+    renamed.forEach((item) => {
+      this.resizers[item.side] = item;
+    });
+  }
+
+  // Rect moving overflow perventer
+  preventMoveOverflow() {
+    const x = this.position.x - this.offset.x;
+
+    if (x < 0) {
+      this.position.x = this.offset.x;
+    } else if (x + this.width > this.canvas.width) {
+      this.position.x = this.canvas.width - (this.width - this.offset.x);
+    }
+
+    const y = this.position.y - this.offset.y;
+    if (y < 0) {
+      this.position.y = this.offset.y;
+    } else if (y + this.height > this.canvas.height) {
+      this.position.y = this.canvas.height - (this.height - this.offset.y);
+    }
+  }
+
+  // Drawing & Resizing overflow perventer
+  preventOverflow() {
+    // When moving the resizer rectangle
+    if (!this.selectedResizer && !this.drawing && !this.isUpdatingRatio) {
+      this.preventMoveOverflow();
+      return;
+    }
+
+    // When resizing with aspect ratio
+    if (this.ratio) {
+      // if (this.y < 0) {
+      //   console.log("y");
+      //   this.y = 0;
+      // }
+      // if (this.y + this.height > this.canvas.height) {
+      //   console.log("height");
+      //   this.height = this.canvas.height - this.y;
+      //   this.width = this.getWidth(this.canvas.height, this.ratio);
+      // }
+
+      this.resizeHandler();
+
+      if (this.x < 0) {
+        console.log("x");
+        this.x = 0;
+      }
+      if (this.x + this.width > this.canvas.width) {
+        console.log("width");
+        this.width = this.canvas.width - this.x;
+        this.height = this.getHeight(this.width, this.ratio);
+      }
+      if (this.y < 0) {
+        console.log("y");
+        this.y = 0;
+      }
+      // if (this.y + this.height > this.canvas.height) {
+      //   this.height = this.canvas.height - this.y;
+      //   this.width = this.getWidth(this.height, this.ratio);
+      //   // this.x = this.canvas.width - (this.x + this.width);
+      // }
+      // this.preventMoveOverflow();
+
+      // if (this.y < 0) {
+      //   console.log("y");
+      //   this.y = 0;
+      //   return;
+      // } else if (this.y >= 0) {
+      //   console.log("sfda");
+      // }
+
+      // if (this.x + this.width > this.canvas.width) {
+      //   this.width = this.canvas.width - this.x;
+      // }
+
+      // if (this.x + this.width > this.canvas.width) {
+      //   console.log("width");
+      //   this.width = this.canvas.width - this.x;
+      //   this.height = this.getWidth(this.canvas.width, this.ratio);
+      // }
+    } else {
+      const x = this.position.x;
+      if (x < 0) {
+        this.position.x = 0;
+      } else if (x > this.canvas.width) {
+        this.position.x = this.canvas.width;
+      }
+
+      if (this.position.y < 0) {
+        this.position.y = 0;
+      } else if (this.position.y > this.canvas.height) {
+        this.position.y = this.canvas.height;
+      }
+    }
+  }
+
+  // Draw the resizer
+  drawHandler() {
+    this.x = this.offset.pureX;
+    this.y = this.offset.pureY;
+
+    if (this.ratio) {
+      this.height += this.position.y - (this.y + this.height);
+
+      if (this.position.x > this.x && this.position.y > this.y) {
+        this.width = this.getWidth(this.height, this.ratio);
+      } else {
+        this.width =
+          this.position.x > this.x || this.position.y > this.y
+            ? -this.getWidth(this.height, this.ratio)
+            : this.getWidth(this.height, this.ratio);
+      }
+    } else {
+      this.width += this.position.x - (this.x + this.width);
+      this.height += this.position.y - (this.y + this.height);
+    }
+  }
+
+  // Resize
+  resizeHandler() {
+    // Width And Height change
+    let dWidth = 0;
+    let dHeight = 0;
+    let dx = 0;
+    let dy = 0;
+    switch (this.selectedResizer) {
+      // Corners
+      case "tl":
+        dx = this.position.x - this.x;
+        dy = this.ratio
+          ? this.getHeight(dx, this.ratio)
+          : this.position.y - this.y;
+        dWidth = -dx;
+        dHeight = -dy;
+        break;
+
+      case "tr":
+        dx = 0;
+        dy = this.position.y - this.y;
+        dWidth = this.ratio
+          ? this.getWidth(-dy, this.ratio)
+          : this.position.x - (this.x + this.width);
+        dHeight = -dy;
+        break;
+
+      case "bl":
+        dx = this.position.x - this.x;
+        dy = 0;
+        dWidth = -dx;
+        dHeight = this.ratio
+          ? this.getHeight(dWidth, this.ratio)
+          : this.position.y - (this.y + this.height);
+        break;
+
+      case "br":
+        dWidth = this.position.x - (this.x + this.width);
+        dHeight = this.ratio
+          ? this.getHeight(dWidth, this.ratio)
+          : this.position.y - (this.y + this.height);
+        break;
+
+      // Centers
+      case "cl":
+        dx = this.position.x - this.x;
+        dWidth = -dx;
+        if (this.ratio) {
+          dHeight = this.getHeight(dWidth, this.ratio);
+          dy = -dHeight / 2;
+        }
+        break;
+
+      case "ct":
+        dy = this.position.y - this.y;
+        dHeight = -dy;
+        if (this.ratio) {
+          dWidth = this.getWidth(dHeight, this.ratio);
+          dx = -dWidth / 2;
+        }
+        break;
+
+      case "cr":
+        dWidth = this.position.x - (this.x + this.width);
+        if (this.ratio) {
+          dHeight = this.getHeight(dWidth, this.ratio);
+          dy = -dHeight / 2;
+        }
+        break;
+
+      case "cb":
+        dHeight = this.position.y - (this.y + this.height);
+        if (this.ratio) {
+          dWidth = this.getWidth(dHeight, this.ratio);
+          dx = -dWidth / 2;
+        }
+        break;
+
+      default:
+        dWidth = 0;
+        dHeight = 0;
+        break;
+    }
+
+    this.x += dx;
+    this.y += dy;
+    this.width += dWidth;
+    this.height += dHeight;
+  }
+
+  update(isUpdatingRatio) {
+    this.c.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.preventOverflow();
+    // Resize the selector
+    if (this.selectedResizer && !this.ratio) {
+      this.resizeHandler();
+    } else if (this.drawing && !this.ratio) {
+      this.drawHandler();
+    } else if (!isUpdatingRatio && !this.selectedResizer && !this.drawing) {
+      // Move the selector
+      this.y = this.position.y - this.offset.y;
+      this.x = this.position.x - this.offset.x;
+    }
+
+    // if (this.ratio) this.preventOverflow();
+    this.selector();
+    this.detectSelectedPointSide();
+  }
+
+  recHit(e, target) {
+    if (target.width < 0) {
+      if (target.height < 0) {
+        if (
+          e.offsetX >= target.x &&
+          e.offsetX <= target.x + Math.abs(target.width) &&
+          e.offsetY >= target.y - Math.abs(target.height) &&
+          e.offsetY <= target.y + Math.abs(target.height)
+        ) {
+          return true;
+        }
+      } else {
+        if (
+          e.offsetX >= target.x - Math.abs(target.width) &&
+          e.offsetX <= target.x &&
+          e.offsetY >= target.y &&
+          e.offsetY <= target.y + Math.abs(target.height)
+        ) {
+          return true;
+        }
+      }
+    } else {
+      if (target.height < 0) {
+        if (
+          e.offsetX >= target.x &&
+          e.offsetX <= target.x + Math.abs(target.width) &&
+          e.offsetY >= target.y - Math.abs(target.height) &&
+          e.offsetY <= target.y + Math.abs(target.height)
+        ) {
+          return true;
+        }
+      } else {
+        if (
+          e.offsetX >= target.x &&
+          e.offsetX <= target.x + Math.abs(target.width) &&
+          e.offsetY >= target.y &&
+          e.offsetY <= target.y + Math.abs(target.height)
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  addRemoveEvents() {
+    window.removeEventListener("pointerup", this.mouseUp);
+    window.removeEventListener("pointermove", this.mouseMove);
+    window.addEventListener("pointerup", this.mouseUp);
+    window.addEventListener("pointermove", this.mouseMove);
+  }
+
+  mouseDown(e) {
+    this.offset = {
+      x: e.offsetX - this.x,
+      y: e.offsetY - this.y,
+      pureX: e.offsetX,
+      pureY: e.offsetY,
+    };
+
+    let cursor = "crosshair";
+
+    for (const item in this.resizers) {
+      if (this.recHit(e, this.resizers[item])) {
+        // Change cursor
+        switch (item) {
+          // Corners
+          case "tl":
+            cursor = this.cursors["tl"];
+            break;
+          case "tr":
+            cursor = this.cursors["tr"];
+            break;
+          case "bl":
+            cursor = this.cursors["bl"];
+            break;
+          case "br":
+            cursor = this.cursors["br"];
+            break;
+
+          // Centers
+          case "cl":
+            cursor = this.cursors["cl"];
+            break;
+          case "ct":
+            cursor = this.cursors["ct"];
+            break;
+          case "cr":
+            cursor = this.cursors["cr"];
+            break;
+          case "cb":
+            cursor = this.cursors["cb"];
+            break;
+
+          default:
+            cursor;
+            break;
+        }
+
+        // Set witch resizer is grabed
+        this.selectedResizer = item;
+
+        window.addEventListener("pointerup", this.mouseUp);
+        window.addEventListener("pointermove", this.mouseMove);
+      }
+
+      // Change cursor
+      this.cursor(cursor);
+    }
+
+    // Check if clicked point is the square
+    if (this.recHit(e, this)) {
+      cursor = "move";
+
+      this.addRemoveEvents();
+    } else {
+      if (!this.selectedResizer) {
+        this.addRemoveEvents();
+        this.drawing = true;
+      }
+    }
+  }
+
+  mouseMove(e) {
+    const target = this.canvas?.getBoundingClientRect();
+
+    this.position = {
+      x: e.target === this.canvas ? e.offsetX : e.offsetX - target.x,
+      y: e.target === this.canvas ? e.offsetY : e.offsetY - target.y,
+    };
+
+    this.update();
+
+    // Return data. it can be on mouse down too
+    this.callback && this.callback(this.outPut());
+  }
+
+  mouseUp() {
+    this.selectedResizer = null;
+    this.drawing = false;
+    this.cursor("crosshair");
+
+    // Fix the position and size after drawing selector
+    this.x = this.resizers["tl"].x + this.pointSize / 2;
+    this.y = this.resizers["tl"].y + this.pointSize / 2;
+    this.width = Math.abs(this.width);
+    this.height = Math.abs(this.height);
+
+    window.removeEventListener("pointerup", this.mouseUp);
+    window.removeEventListener("pointermove", this.mouseMove);
+
+    this.detectSelectedPointSide();
+    this.selector();
+  }
+
+  hoverCursor(e) {
+    let cursor = "crosshair";
+
+    if (this.recHit(e, this)) {
+      cursor = "move";
+    }
+
+    for (const item in this.resizers) {
+      if (this.recHit(e, this.resizers[item])) {
+        switch (item) {
+          case "tl":
+            cursor = this.cursors["tl"];
+            break;
+          case "tr":
+            cursor = this.cursors["tr"];
+            break;
+          case "bl":
+            cursor = this.cursors["bl"];
+            break;
+          case "br":
+            cursor = this.cursors["br"];
+            break;
+          case "cl":
+            cursor = this.cursors["cl"];
+            break;
+          case "ct":
+            cursor = this.cursors["ct"];
+            break;
+          case "cr":
+            cursor = this.cursors["cr"];
+            break;
+          case "cb":
+            cursor = this.cursors["cb"];
+            break;
+
+          default:
+            cursor;
+            break;
+        }
+      }
+    }
+    // Change cursor
+    this.cursor(cursor);
+  }
+
+  outPut() {
+    let x, y, width, height;
+    if (this.width < 0) {
+      x = this.x - Math.abs(this.width);
+      y = this.y;
+    } else {
+      x = this.x;
+      y = this.y;
+    }
+    if (this.height < 0) {
+      y = this.y - Math.abs(this.height);
+    }
+    width = Math.abs(this.width);
+    height = Math.abs(this.height);
+    x = x + this.canvas.getBoundingClientRect().left;
+    y = y + this.canvas.getBoundingClientRect().top;
+
+    return {
+      x,
+      y,
+      width,
+      height,
+    };
+  }
+
+  centerize() {
+    this.x = this.containerInfo.width / 2 - this.width / 2;
+    this.y = this.containerInfo.height / 2 - this.height / 2;
+    this.update(true);
+  }
+
+  setAspect(ratio) {
+    if (ratio) {
+      this.height = this.containerInfo.height / 2;
+      this.width = this.getWidth(this.height, ratio);
+      this.centerize();
+    }
+
+    this.update(true);
+  }
+
+  resize() {
+    this.containerInfo = this.container.getBoundingClientRect();
+    this.canvas.width = this.containerInfo.width;
+    this.canvas.height = this.containerInfo.height;
+
+    const cbCaller = () => this.callback && this.callback(this.outPut());
+
+    if (this.width > this.containerInfo.width) {
+      this.width = this.containerInfo.width;
+      cbCaller();
+    }
+
+    if (this.height > this.containerInfo.height) {
+      this.height = this.containerInfo.height;
+      cbCaller();
+    }
+
+    this.update();
+  }
+
+  init(callback) {
+    this.update();
+    this.setAspect(this.ratio);
+
+    this.container.addEventListener("pointerdown", this.mouseDown);
+
+    window.addEventListener("mousemove", this.hoverCursor);
+
+    window.addEventListener("keydown", (e) => {
+      switch (e.key) {
+        case "1":
+          this.ratio = 16 / 9;
+          this.setAspect(this.ratio);
+          break;
+
+        case "2":
+          this.ratio = 9 / 16;
+          this.setAspect(this.ratio);
+          break;
+
+        case "3":
+          this.ratio = 1 / 1;
+          this.setAspect(this.ratio);
+          break;
+
+        case "4":
+          this.ratio = null;
+          this.setAspect(this.ratio);
+          break;
+
+        default:
+          this.ratio = null;
+          this.setAspect(this.ratio);
+          break;
+      }
+    });
+
+    this.callback = callback;
+    this.callback && this.callback(this.outPut());
+  }
+}
+
+export default Selector;
