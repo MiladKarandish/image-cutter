@@ -89,6 +89,10 @@ class Selector {
     this.colors = colors;
     this.c.lineWidth = lineWidth;
 
+    // Speeds
+    this.speedX = 0;
+    this.speedY = 0;
+
     // Event listeners
     window.addEventListener("resize", this.resize);
   }
@@ -203,6 +207,34 @@ class Selector {
     return width;
   }
 
+  // set speed and also reset them
+  setSpeeds() {
+    const sx = this.position.x - this.x;
+    const sw = this.position.x - (this.x + this.width);
+    const sy = this.position.y - this.y;
+    const sh = this.position.y - (this.y + this.height);
+
+    if (this.selectedResizer) {
+      const is = (side) => this.selectedResizer?.includes(side);
+      if (this.ratio) {
+        if (is("l") || is("tl") || is("bl")) this.speedX = this.speedY = sx;
+        if (is("r") || is("tr") || is("br")) this.speedX = this.speedY = sw;
+        else if (is("t")) this.speedY = sy;
+        else if (is("b")) this.speedY = sh;
+      } else {
+        if (is("l")) this.speedX = sx;
+        if (is("r")) this.speedX = sw;
+        if (is("t")) this.speedY = sy;
+        if (is("b")) this.speedY = sh;
+      }
+      if (!is("l") && !is("r")) this.speedX = 0;
+      if (!is("t") && !is("b")) this.speedY = 0;
+    } else {
+      this.speedX = sw;
+      this.speedY = sh;
+    }
+  }
+
   selector() {
     // The selecor rectangle
     this.addMainRect();
@@ -277,79 +309,106 @@ class Selector {
     }
 
     // When resizing with aspect ratio
-    if (this.ratio) {
-      // if (this.y < 0) {
-      //   console.log("y");
-      //   this.y = 0;
-      // }
-      // if (this.y + this.height > this.canvas.height) {
-      //   console.log("height");
-      //   this.height = this.canvas.height - this.y;
-      //   this.width = this.getWidth(this.canvas.height, this.ratio);
-      // }
+    // if (this.ratio) {
+    // if (this.y < 0) {
+    //   console.log("y");
+    //   this.y = 0;
+    // }
+    // if (this.y + this.height > this.canvas.height) {
+    //   console.log("height");
+    //   this.height = this.canvas.height - this.y;
+    //   this.width = this.getWidth(this.canvas.height, this.ratio);
+    // }
 
-      this.resizeHandler();
-
-      if (this.x < 0) {
-        console.log("x");
-        this.x = 0;
-      }
-      if (this.x + this.width > this.canvas.width) {
-        console.log("width");
-        this.width = this.canvas.width - this.x;
-        this.height = this.getHeight(this.width, this.ratio);
-      }
-      if (this.y < 0) {
-        console.log("y");
-        this.y = 0;
-      }
-      // if (this.y + this.height > this.canvas.height) {
-      //   this.height = this.canvas.height - this.y;
-      //   this.width = this.getWidth(this.height, this.ratio);
-      //   // this.x = this.canvas.width - (this.x + this.width);
-      // }
-      // this.preventMoveOverflow();
-
-      // if (this.y < 0) {
-      //   console.log("y");
-      //   this.y = 0;
-      //   return;
-      // } else if (this.y >= 0) {
-      //   console.log("sfda");
-      // }
-
-      // if (this.x + this.width > this.canvas.width) {
-      //   this.width = this.canvas.width - this.x;
-      // }
-
-      // if (this.x + this.width > this.canvas.width) {
-      //   console.log("width");
-      //   this.width = this.canvas.width - this.x;
-      //   this.height = this.getWidth(this.canvas.width, this.ratio);
-      // }
-    } else {
-      const x = this.position.x;
-      if (x < 0) {
-        this.position.x = 0;
-      } else if (x > this.canvas.width) {
-        this.position.x = this.canvas.width;
-      }
-
-      if (this.position.y < 0) {
-        this.position.y = 0;
-      } else if (this.position.y > this.canvas.height) {
-        this.position.y = this.canvas.height;
-      }
+    const x = this.position.x;
+    if (x < 0) {
+      this.position.x = 0;
+    } else if (x > this.canvas.width) {
+      this.position.x = this.canvas.width;
     }
+
+    if (this.position.y < 0) {
+      this.position.y = 0;
+    } else if (this.position.y > this.canvas.height) {
+      this.position.y = this.canvas.height;
+    }
+
+    this.resizeHandler();
+
+    let dx = 0;
+    let dy = 0;
+    let dWidth = 0;
+    let dHeight = 0;
+    if (this.x < 0) {
+      console.log("x");
+      this.x = 0;
+    }
+    if (this.x + this.width > this.canvas.width) {
+      console.log("width");
+      // this.width = this.canvas.width - this.x;
+      dWidth = this.position.x - this.x;
+      dx = dWidth;
+      // console.log(this.getHeight(dWidth, this.ratio));
+      dHeight = this.getHeight(dWidth, this.ratio);
+      dy = dHeight;
+    }
+    if (this.y < 0) {
+      console.log("y");
+      this.y = 0;
+    }
+
+    this.x += dx;
+    this.y += dy;
+    this.width += dWidth;
+    this.height += dHeight;
+    // if (this.y + this.height > this.canvas.height) {
+    //   this.height = this.canvas.height - this.y;
+    //   this.width = this.getWidth(this.height, this.ratio);
+    //   // this.x = this.canvas.width - (this.x + this.width);
+    // }
+    // this.preventMoveOverflow();
+
+    // if (this.y < 0) {
+    //   console.log("y");
+    //   this.y = 0;
+    //   return;
+    // } else if (this.y >= 0) {
+    //   console.log("sfda");
+    // }
+
+    // if (this.x + this.width > this.canvas.width) {
+    //   this.width = this.canvas.width - this.x;
+    // }
+
+    // if (this.x + this.width > this.canvas.width) {
+    //   console.log("width");
+    //   this.width = this.canvas.width - this.x;
+    //   this.height = this.getWidth(this.canvas.width, this.ratio);
+    // }
+    // } else {
+    //   const x = this.position.x;
+    //   if (x < 0) {
+    //     this.position.x = 0;
+    //   } else if (x > this.canvas.width) {
+    //     this.position.x = this.canvas.width;
+    //   }
+
+    //   if (this.position.y < 0) {
+    //     this.position.y = 0;
+    //   } else if (this.position.y > this.canvas.height) {
+    //     this.position.y = this.canvas.height;
+    //   }
+    // }
   }
 
   // Draw the resizer
   drawHandler() {
     this.x = this.offset.pureX;
     this.y = this.offset.pureY;
+    this.setSpeeds();
 
     if (this.ratio) {
-      this.height += this.position.y - (this.y + this.height);
+      this.height += this.speedY;
 
       if (this.position.x > this.x && this.position.y > this.y) {
         this.width = this.getWidth(this.height, this.ratio);
@@ -360,13 +419,14 @@ class Selector {
             : this.getWidth(this.height, this.ratio);
       }
     } else {
-      this.width += this.position.x - (this.x + this.width);
-      this.height += this.position.y - (this.y + this.height);
+      this.width += this.speedX;
+      this.height += this.speedY;
     }
   }
 
   // Resize
   resizeHandler() {
+    this.setSpeeds();
     // Width And Height change
     let dWidth = 0;
     let dHeight = 0;
@@ -375,7 +435,7 @@ class Selector {
     switch (this.selectedResizer) {
       // Corners
       case "tl":
-        dx = this.position.x - this.x;
+        dx = this.speedX;
         dy = this.ratio
           ? this.getHeight(dx, this.ratio)
           : this.position.y - this.y;
@@ -384,16 +444,15 @@ class Selector {
         break;
 
       case "tr":
-        dx = 0;
-        dy = this.position.y - this.y;
-        dWidth = this.ratio
-          ? this.getWidth(-dy, this.ratio)
-          : this.position.x - (this.x + this.width);
+        dWidth = this.speedX;
+        dy = this.ratio
+          ? this.getHeight(-dWidth, this.ratio)
+          : this.position.y - this.y;
         dHeight = -dy;
         break;
 
       case "bl":
-        dx = this.position.x - this.x;
+        dx = this.speedX;
         dy = 0;
         dWidth = -dx;
         dHeight = this.ratio
@@ -402,7 +461,7 @@ class Selector {
         break;
 
       case "br":
-        dWidth = this.position.x - (this.x + this.width);
+        dWidth = this.speedX;
         dHeight = this.ratio
           ? this.getHeight(dWidth, this.ratio)
           : this.position.y - (this.y + this.height);
@@ -410,7 +469,7 @@ class Selector {
 
       // Centers
       case "cl":
-        dx = this.position.x - this.x;
+        dx = this.speedX;
         dWidth = -dx;
         if (this.ratio) {
           dHeight = this.getHeight(dWidth, this.ratio);
@@ -419,7 +478,7 @@ class Selector {
         break;
 
       case "ct":
-        dy = this.position.y - this.y;
+        dy = this.speedY;
         dHeight = -dy;
         if (this.ratio) {
           dWidth = this.getWidth(dHeight, this.ratio);
@@ -428,7 +487,7 @@ class Selector {
         break;
 
       case "cr":
-        dWidth = this.position.x - (this.x + this.width);
+        dWidth = this.speedX;
         if (this.ratio) {
           dHeight = this.getHeight(dWidth, this.ratio);
           dy = -dHeight / 2;
@@ -436,7 +495,7 @@ class Selector {
         break;
 
       case "cb":
-        dHeight = this.position.y - (this.y + this.height);
+        dHeight = this.speedY;
         if (this.ratio) {
           dWidth = this.getWidth(dHeight, this.ratio);
           dx = -dWidth / 2;
