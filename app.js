@@ -1,26 +1,3 @@
-// import Selector from "./selector.mini.js";
-// const container = document.getElementById("container");
-
-// const colors = {
-//   resizersStroke: "#fff",
-//   resizersFill: "#fff",
-//   rect: "#fff",
-// };
-
-// // Selector
-// const selector = new Selector({
-//   container,
-//   colors,
-//   lineWidth: 1,
-//   resizersSize: 10,
-// });
-
-// const callback = (data) => {
-//   console.log(data);
-// };
-
-// selector.init(callback);
-
 import Selector from "./selector.js";
 import Cutter from "./cutter.js";
 
@@ -41,14 +18,16 @@ const selector = new Selector({
   colors,
   lineWidth: 1,
   resizersSize: 10,
-  aspectRatio: 16 / 9,
+  // aspectRatio: 16 / 5,
 });
+
 // Cutter
 const cutter = new Cutter(image, container);
 
 const callback = (data) => {
   cutter.saveData(data);
 };
+
 cutter.init();
 selector.init(callback);
 

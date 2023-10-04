@@ -207,32 +207,33 @@ class Selector {
     return width;
   }
 
-  // set speed and also reset them
+  // set mouse movement speed in x and y axis
   setSpeeds() {
     const sx = this.position.x - this.x;
     const sw = this.position.x - (this.x + this.width);
     const sy = this.position.y - this.y;
     const sh = this.position.y - (this.y + this.height);
 
-    if (this.selectedResizer) {
-      const is = (side) => this.selectedResizer?.includes(side);
-      if (this.ratio) {
-        if (is("l") || is("tl") || is("bl")) this.speedX = this.speedY = sx;
-        if (is("r") || is("tr") || is("br")) this.speedX = this.speedY = sw;
-        else if (is("t")) this.speedY = sy;
-        else if (is("b")) this.speedY = sh;
-      } else {
-        if (is("l")) this.speedX = sx;
-        if (is("r")) this.speedX = sw;
-        if (is("t")) this.speedY = sy;
-        if (is("b")) this.speedY = sh;
-      }
-      if (!is("l") && !is("r")) this.speedX = 0;
-      if (!is("t") && !is("b")) this.speedY = 0;
-    } else {
+    if (!this.selectedResizer) {
       this.speedX = sw;
       this.speedY = sh;
+      return;
     }
+
+    const is = (side) => this.selectedResizer?.includes(side);
+    if (this.ratio) {
+      if (is("l") || is("tl") || is("bl")) this.speedX = this.speedY = sx;
+      if (is("r") || is("tr") || is("br")) this.speedX = this.speedY = sw;
+      else if (is("t")) this.speedY = sy;
+      else if (is("b")) this.speedY = sh;
+    } else {
+      if (is("l")) this.speedX = sx;
+      if (is("r")) this.speedX = sw;
+      if (is("t")) this.speedY = sy;
+      if (is("b")) this.speedY = sh;
+    }
+    if (!is("l") && !is("r")) this.speedX = 0;
+    if (!is("t") && !is("b")) this.speedY = 0;
   }
 
   selector() {
@@ -302,24 +303,14 @@ class Selector {
 
   // Drawing & Resizing overflow perventer
   preventOverflow() {
+    this.setSpeeds();
     // When moving the resizer rectangle
     if (!this.selectedResizer && !this.drawing && !this.isUpdatingRatio) {
       this.preventMoveOverflow();
       return;
     }
 
-    // When resizing with aspect ratio
-    // if (this.ratio) {
-    // if (this.y < 0) {
-    //   console.log("y");
-    //   this.y = 0;
-    // }
-    // if (this.y + this.height > this.canvas.height) {
-    //   console.log("height");
-    //   this.height = this.canvas.height - this.y;
-    //   this.width = this.getWidth(this.canvas.height, this.ratio);
-    // }
-
+    // Normal overflow check using mouse position
     const x = this.position.x;
     if (x < 0) {
       this.position.x = 0;
@@ -333,72 +324,61 @@ class Selector {
       this.position.y = this.canvas.height;
     }
 
-    this.resizeHandler();
-
+    // To check overflow when mouse is not valid
     let dx = 0;
     let dy = 0;
     let dWidth = 0;
     let dHeight = 0;
+    this.resizeHandler();
+
+    console.log(this.x);
     if (this.x < 0) {
-      console.log("x");
+      console.log("X");
       this.x = 0;
     }
+
     if (this.x + this.width > this.canvas.width) {
-      console.log("width");
-      // this.width = this.canvas.width - this.x;
-      dWidth = this.position.x - this.x;
-      dx = dWidth;
-      // console.log(this.getHeight(dWidth, this.ratio));
-      dHeight = this.getHeight(dWidth, this.ratio);
-      dy = dHeight;
+      this.x = this.canvas.width - this.width - 1;
+      this.width++;
+      dHeight = this.getHeight(1, this.ratio);
+      if (this.selectedResizer === "ct") dy = -dHeight;
     }
+
     if (this.y < 0) {
-      console.log("y");
       this.y = 0;
+    }
+
+    if (this.y + this.height > this.canvas.height) {
+      this.y = this.canvas.height - this.height - 1;
+      this.height++;
+      dWidth = this.getWidth(1, this.ratio);
+      if (this.selectedResizer === "cl") dx = -dWidth;
+    }
+
+    if (this.height > this.canvas.height) {
+      this.y = 0;
+      this.height = this.canvas.height;
+      this.width = this.getWidth(this.height, this.ratio);
+      dHeight = dWidth = dx = dy = 0;
+      if (this.selectedResizer === "cl") {
+        dx -= this.speedX;
+      }
+    }
+
+    if (this.width > this.canvas.width) {
+      this.x = 0;
+      this.width = this.canvas.width;
+      this.height = this.getHeight(this.width, this.ratio);
+      dWidth = dWidth = dx = dy = 0;
+      if (this.selectedResizer === "ct") {
+        dy -= this.speedY;
+      }
     }
 
     this.x += dx;
     this.y += dy;
     this.width += dWidth;
     this.height += dHeight;
-    // if (this.y + this.height > this.canvas.height) {
-    //   this.height = this.canvas.height - this.y;
-    //   this.width = this.getWidth(this.height, this.ratio);
-    //   // this.x = this.canvas.width - (this.x + this.width);
-    // }
-    // this.preventMoveOverflow();
-
-    // if (this.y < 0) {
-    //   console.log("y");
-    //   this.y = 0;
-    //   return;
-    // } else if (this.y >= 0) {
-    //   console.log("sfda");
-    // }
-
-    // if (this.x + this.width > this.canvas.width) {
-    //   this.width = this.canvas.width - this.x;
-    // }
-
-    // if (this.x + this.width > this.canvas.width) {
-    //   console.log("width");
-    //   this.width = this.canvas.width - this.x;
-    //   this.height = this.getWidth(this.canvas.width, this.ratio);
-    // }
-    // } else {
-    //   const x = this.position.x;
-    //   if (x < 0) {
-    //     this.position.x = 0;
-    //   } else if (x > this.canvas.width) {
-    //     this.position.x = this.canvas.width;
-    //   }
-
-    //   if (this.position.y < 0) {
-    //     this.position.y = 0;
-    //   } else if (this.position.y > this.canvas.height) {
-    //     this.position.y = this.canvas.height;
-    //   }
-    // }
   }
 
   // Draw the resizer
@@ -521,7 +501,7 @@ class Selector {
     // Resize the selector
     if (this.selectedResizer && !this.ratio) {
       this.resizeHandler();
-    } else if (this.drawing && !this.ratio) {
+    } else if (this.drawing) {
       this.drawHandler();
     } else if (!isUpdatingRatio && !this.selectedResizer && !this.drawing) {
       // Move the selector
@@ -529,7 +509,7 @@ class Selector {
       this.x = this.position.x - this.offset.x;
     }
 
-    // if (this.ratio) this.preventOverflow();
+    this.preventOverflow();
     this.selector();
     this.detectSelectedPointSide();
   }
