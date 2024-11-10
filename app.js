@@ -34,3 +34,12 @@ selector.init(callback);
 document.getElementById("download").addEventListener("click", () => {
   cutter.download();
 });
+
+document.getElementById("action-buttons").addEventListener("click", (e) => {
+  const aspectRatio = e.target.getAttribute("data-value");
+
+  if (aspectRatio) {
+    selector.setAspect(aspectRatio === "free" ? null : aspectRatio);
+    selector.outPut();
+  }
+});

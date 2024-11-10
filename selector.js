@@ -1,18 +1,7 @@
 /** @type {HTMLCanvasElement} */
 
 class Selector {
-  constructor({
-    container,
-    canvas,
-    colors,
-    lineWidth,
-    resizersSize,
-    x,
-    y,
-    width,
-    height,
-    aspectRatio,
-  }) {
+  constructor({ container, canvas, colors, lineWidth, resizersSize, x, y, width, height, aspectRatio }) {
     // container
     this.container = container;
     this.styles(this.container, { touchAction: "none", position: "relative" });
@@ -108,12 +97,7 @@ class Selector {
 
   addMainRect() {
     this.c.beginPath();
-    this.c.rect(
-      this.x,
-      this.y,
-      this.width,
-      !this.ratio ? this.height : this.height
-    );
+    this.c.rect(this.x, this.y, this.width, !this.ratio ? this.height : this.height);
     this.c.strokeStyle = this.colors?.rect || "#f4f4f4";
     this.c.stroke();
 
@@ -331,9 +315,7 @@ class Selector {
     let dHeight = 0;
     this.resizeHandler();
 
-    console.log(this.x);
     if (this.x < 0) {
-      console.log("X");
       this.x = 0;
     }
 
@@ -416,18 +398,14 @@ class Selector {
       // Corners
       case "tl":
         dx = this.speedX;
-        dy = this.ratio
-          ? this.getHeight(dx, this.ratio)
-          : this.position.y - this.y;
+        dy = this.ratio ? this.getHeight(dx, this.ratio) : this.position.y - this.y;
         dWidth = -dx;
         dHeight = -dy;
         break;
 
       case "tr":
         dWidth = this.speedX;
-        dy = this.ratio
-          ? this.getHeight(-dWidth, this.ratio)
-          : this.position.y - this.y;
+        dy = this.ratio ? this.getHeight(-dWidth, this.ratio) : this.position.y - this.y;
         dHeight = -dy;
         break;
 
@@ -435,16 +413,12 @@ class Selector {
         dx = this.speedX;
         dy = 0;
         dWidth = -dx;
-        dHeight = this.ratio
-          ? this.getHeight(dWidth, this.ratio)
-          : this.position.y - (this.y + this.height);
+        dHeight = this.ratio ? this.getHeight(dWidth, this.ratio) : this.position.y - (this.y + this.height);
         break;
 
       case "br":
         dWidth = this.speedX;
-        dHeight = this.ratio
-          ? this.getHeight(dWidth, this.ratio)
-          : this.position.y - (this.y + this.height);
+        dHeight = this.ratio ? this.getHeight(dWidth, this.ratio) : this.position.y - (this.y + this.height);
         break;
 
       // Centers
@@ -747,6 +721,8 @@ class Selector {
   }
 
   setAspect(ratio) {
+    this.ratio = ratio;
+
     if (ratio) {
       this.height = this.containerInfo.height / 2;
       this.width = this.getWidth(this.height, ratio);
@@ -787,18 +763,15 @@ class Selector {
     window.addEventListener("keydown", (e) => {
       switch (e.key) {
         case "1":
-          this.ratio = 16 / 9;
-          this.setAspect(this.ratio);
+          this.setAspect(16 / 9);
           break;
 
         case "2":
-          this.ratio = 9 / 16;
-          this.setAspect(this.ratio);
+          this.setAspect(9 / 16);
           break;
 
         case "3":
-          this.ratio = 1 / 1;
-          this.setAspect(this.ratio);
+          this.setAspect(1 / 1);
           break;
 
         case "4":
