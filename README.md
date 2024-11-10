@@ -1,6 +1,5 @@
-# Cutter-v2
+# Image Cutter
 
-## npm: https://www.npmjs.com/package/mil-selector
 
 ## How to use:
 
