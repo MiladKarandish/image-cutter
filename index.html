@@ -57,18 +57,32 @@
       #container {
         position: relative;
         top: 50%;
-        width: 69%;
-        height: fit-content;
+        width: 70vw;
+        height: 80vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         margin: auto;
         padding: 0;
         transform: translateY(-50%);
         touch-action: none;
+        background: url("./images/bg.png");
+      }
+
+      #container::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background-color: rgba(0, 0, 0, 0.5);
+        pointer-events: none;
       }
 
       #container img {
         display: block;
-        width: 100%;
-        object-fit: cover;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
         user-select: none;
       }
 
@@ -89,19 +103,27 @@
         color: white;
       }
 
-      #action-buttons button:not(:last-child) {
+      #action-buttons > *:not(:last-child) {
         margin-bottom: 10px;
+      }
+
+      #custom-image {
+        display: none;
       }
     </style>
   </head>
 
   <body>
     <div id="container">
-      <img id="crop-target" src="./fantasy.jpg" alt="image to cut" />
+      <img id="crop-target" src="./images/fantasy.jpg" alt="image to cut" />
       <canvas id="selector"></canvas>
     </div>
 
     <div id="action-buttons">
+      <label for="custom-image" class="btn">
+        Custom Image
+        <input type="file" name="custom-image" id="custom-image" class="btn" accept="image/*" />
+      </label>
       <button class="btn" data-value="1">1/1</button>
       <button class="btn" data-value="1.777777777777778">16/9</button>
       <button class="btn" data-value="0.5625">9/16</button>

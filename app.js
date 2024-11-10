@@ -43,3 +43,9 @@ document.getElementById("action-buttons").addEventListener("click", (e) => {
     selector.outPut();
   }
 });
+
+document.getElementById("custom-image").addEventListener("input", (e) => {
+  const img = URL.createObjectURL(e.target.files[0]);
+
+  document.getElementById("crop-target").setAttribute("src", img);
+});
