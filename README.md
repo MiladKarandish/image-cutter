@@ -1,6 +1,5 @@
 # Image Cutter
 
-
 ## How to use:
 
 > **container**: the container of the resizer. resizer can't overflow the contianer.
@@ -38,3 +37,7 @@ lineWidth: 1,
 resizersSize: 10,
 colors
 )
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.

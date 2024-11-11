@@ -1,24 +1,24 @@
 {
-  "name": "mil-selector",
+  "name": "mil-cropper",
   "version": "1.0.1",
-  "description": "javascript selector",
-  "main": "selector.mini.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/MiladKarandish/selector-npm-v1.0.0.git"
-  },
+  "author": "Milad Karandish <miladkaarandish@gmail.com> (https://miladkarandish.vercel.app)",
+  "description": "javascript cropper",
+  "main": "app.js",
+  "license": "MIT",
   "keywords": [
     "resizer",
     "js-resizer",
     "javascript"
   ],
-  "author": "Milad Karandish",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/MiladKarandish/resizer-npm-v1.0.0/issues"
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://github.com/MiladKarandish/resizer-npm-v1.0.0#readme"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MiladKarandish/image-cutter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MiladKarandish/image-cutter/issues"
+  },
+  "homepage": "https://mil-image-cutter.vercel.app"
 }
